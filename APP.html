@@ -1,0 +1,472 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board</title>
+    <style>
+        .kanban {
+            display: flex;
+            padding: 30px;
+            width: 1500px;
+            background: #009578;
+            border-radius: 5px;
+        }
+
+        .kanban * {
+            font-family: sans-serif;
+        }
+
+        .kanban__column {
+            flex: 1;
+        }
+
+        .kanban__column:not(:last-child) {
+            margin-right: 30px;
+        }
+
+        .kanban__column-title {
+            margin-bottom: 20px;
+            font-size: 25px;
+            color: #fff;
+            user-select: none;
+        }
+
+        .kanban__item-input {
+            padding: 10px 15px;
+            box-sizing: border-box;
+            background: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .kanban__dropzone {
+            height: 10px;
+            transition: background 0.15s, height 0.15s;
+        }
+
+        .kanban__dropzone--active {
+            height: 20px;
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .kanban__add-item {
+            width: 100%;
+            padding: 10px 0;
+            font-size: 16px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .kanban__save-item {
+            width: 100px;
+            padding: 10px 0;
+            font-size: 16px;
+            color: #fff;
+            background: #08e6b9;
+            color: #01614e;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+
+        /* ============== */
+        /*   Items Spec   */
+        /* ============== */
+
+        .kanban__items-spec {
+            width: 500px;
+            padding: 0 30px;
+            color: #fff;
+            border-left: 5px solid rgba(0, 0, 0, 0.1);
+        }
+
+
+        .kanban__items-spec input {
+            background-color: #01614e;
+            padding: 5px;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 20px;
+            min-height: 30px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .kanban__items-spec input::placeholder {
+            color: #009578;
+        }
+
+        .kanban__item-title,
+        .kanban__item-description {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="kanban">
+        <div class="kanban__column" id="col-1">
+            <div class="kanban__column-title">Backlog</div>
+            <div class="kanban__items">
+                <div class="kanban__dropzone" ondragover="allowDrop(event);" ondragleave="dropLeave(event);"
+                    ondrop="drop(event)"></div>
+            </div>
+            <button class="kanban__add-item" type="button" onclick="addNewItem(event)">+ Add</button>
+        </div>
+        <div class="kanban__column" id="col-2">
+            <div class="kanban__column-title">In Progress</div>
+            <div class="kanban__items">
+                <div class="kanban__dropzone" ondragover="allowDrop(event);" ondragleave="dropLeave(event);"
+                    ondrop="drop(event)"></div>
+            </div>
+            <button class="kanban__add-item" type="button" onclick="addNewItem(event)">+ Add</button>
+        </div>
+        <div class="kanban__column" id="col-3">
+            <div class="kanban__column-title">Peer review</div>
+            <div class="kanban__items">
+                <div class="kanban__dropzone" ondragover="allowDrop(event);" ondragleave="dropLeave(event);"
+                    ondrop="drop(event)"></div>
+            </div>
+            <button class="kanban__add-item" type="button" onclick="addNewItem(event)">+ Add</button>
+        </div>
+        <div class="kanban__column" id="col-4">
+            <div class="kanban__column-title">In Test</div>
+            <div class="kanban__items">
+                <div class="kanban__dropzone" ondragover="allowDrop(event);" ondragleave="dropLeave(event);"
+                    ondrop="drop(event)"></div>
+            </div>
+            <button class="kanban__add-item" type="button" onclick="addNewItem(event)">+ Add</button>
+        </div>
+        <div class="kanban__column" id="col-5">
+            <div class="kanban__column-title">Done</div>
+            <div class="kanban__items">
+                <div class="kanban__dropzone" ondragover="allowDrop(event);" ondragleave="dropLeave(event);"
+                    ondrop="drop(event)"></div>
+            </div>
+            <button class="kanban__add-item" type="button" onclick="addNewItem(event)">+ Add</button>
+        </div>
+        <div class="kanban__items-spec" id="spec">
+            <div class="kanban__title-mini">Title</div>
+            <input contenteditable class="kanban__item-title" id="item-title"></input>
+            <div class="kanban__description-mini">Description</div>
+            <input contenteditable class="kanban__item-description" id="item-description"></input>
+            <div class="kanban__status-mini">Status</div>
+            <input class="kanban__item-status" id="item-status"></input>
+            <button class="kanban__save-item" id="save-update" type="button">Save</button>
+        </div>
+    </div>
+
+    <script>
+
+        // KanbanAPI Functions  - Local Storage
+
+        function read() {
+            const json = localStorage.getItem("kanban-data");
+
+            if (!json) {
+                return [
+                    {
+                        id: 1,
+                        items: []
+                    },
+                    {
+                        id: 2,
+                        items: []
+                    },
+                    {
+                        id: 3,
+                        items: []
+                    },
+                    {
+                        id: 4,
+                        items: []
+                    },
+                    {
+                        id: 5,
+                        items: []
+                    }
+                ];
+            }
+
+            return JSON.parse(json);
+        }
+
+        function save(data) {
+            localStorage.setItem("kanban-data", JSON.stringify(data));
+        }
+
+        function getItems(columnId) {
+            const column = read().find(column => column.id == columnId);
+
+            if (!column) {
+                return [];
+            }
+
+            return column.items;
+        }
+
+        function insertItem(columnId, content) {
+            const data = read();
+            const column = data.find(column => column.id == columnId);
+            const item = {
+                id: Math.floor(Math.random() * 100000),
+                content
+            }
+
+            if (!column) {
+                throw new Error("Column does not exist");
+            }
+
+            column.items.push(item);
+            save(data);
+
+            return item;
+        }
+
+        function updateItem(itemId, newProps, onlyState) {
+            const data = read();
+            const [item, currentColumn] = (() => {
+                for (const column of data) {
+                    const item = column.items.find(item => item.id == itemId);
+
+                    if (item) {
+                        return [item, column];
+                    }
+
+                }
+            })();
+
+            if (!item) {
+                throw new Error("Item not found");
+            }
+            if (!onlyState) {
+                item.content = newProps.content === undefined ? item.content : newProps.content;
+            }
+
+
+            item.content.state = newProps.content.state === undefined ? item.content.state : newProps.content.state;
+
+            //Update column and posiiton
+
+            if (
+                newProps.columnId !== undefined && newProps.position !== undefined
+            ) {
+                const targetColumn = data.find(column => column.id == newProps.columnId);
+
+                if (!targetColumn) {
+                    throw new Error("Target column not found")
+                }
+
+                // Delete the item from it's current column
+                currentColumn.items.splice(currentColumn.items.indexOf(item), 1);
+
+                // Move item into a new column and position it
+                targetColumn.items.splice(newProps.position, 0, item);
+
+            }
+
+            save(data);
+        }
+
+        function deleteItem(itemId) {
+            const data = read();
+
+            for (const column of data) {
+                const item = column.items.find(item => item.id == itemId);
+
+                if (item) {
+                    column.items.splice(column.items.indexOf(item), 1);
+                }
+            }
+
+            save(data);
+        }
+
+
+        // --------------
+        // User Inerface 
+        // --------------
+
+        let targetItem;
+
+        function render() {
+
+            Array.from(document.getElementsByClassName("kanban__items")).forEach(item => {
+                item.innerHTML = "";
+            })
+
+
+
+            const columns = read();
+
+            columns.forEach((col, index) => {
+                const currentColumn = document.getElementById(`col-${index + 1}`);
+                let columnItems = currentColumn.children[1];
+                let dropzone = document.createElement("div");
+                dropzone.className = "kanban__dropzone";
+                dropzone.setAttribute("ondragover", "allowDrop(event);")
+                dropzone.setAttribute("ondragleave", "dropLeave(event);")
+                dropzone.setAttribute("ondrop", "drop(event)");
+                columnItems.appendChild(dropzone);
+            });
+
+
+            columns.forEach((col, index) => {
+                const currentColumn = document.getElementById(`col-${index + 1}`);
+                if (col.items.length) {
+                    col.items.forEach(item => {
+                        let columnItems = currentColumn.children[1];
+                        let title = document.createElement("div");
+                        title.className = "kanban__item-input";
+                        title.setAttribute("id", item.id);
+                        title.setAttribute("onClick", "showMoreDetails(event);");
+                        title.setAttribute("draggable", "true");
+                        title.setAttribute("ondragstart", "dragStart(event)");
+                        title.textContent = item.content.title;
+                        columnItems.appendChild(title);
+                        let dropzone = document.createElement("div");
+                        dropzone.className = "kanban__dropzone";
+                        dropzone.setAttribute("ondragover", "allowDrop(event);")
+                        dropzone.setAttribute("ondragleave", "dropLeave(event);")
+                        dropzone.setAttribute("ondrop", "drop(event)");
+                        columnItems.appendChild(dropzone);
+                    })
+                }
+            });
+        }
+
+        const showMoreDetails = (event) => {
+            const itemId = parseInt(event.target.id);
+            const columnId = parseInt(event.target.parentElement.parentElement.id.slice(-1));
+            currentColumn = columnId;
+            targetItem = itemId;
+
+            const allItems = getItems(columnId);
+            const currentItem = allItems.find(item => item.id == itemId);
+
+            const title = document.getElementById("item-title");
+            title.value = '';
+            title.value = currentItem.content.title;
+
+            const description = document.getElementById("item-description");
+            description.value = '';
+            description.value = currentItem.content.description;
+
+            const state = document.getElementById("item-status");
+            state.value = '';
+            state.value = currentItem.content.state;
+            document.querySelector(".kanban__save-item").setAttribute("onclick", "update()");
+
+        }
+
+        const addNewItem = (event) => {
+
+            currentColumn = parseInt(event.target.parentElement.id.slice(-1));
+
+
+            document.getElementById("item-title").setAttribute("placeholder", "Add task title");
+            document.getElementById("item-title").value = '';
+            document.getElementById("item-status").value = event.target.previousElementSibling.previousElementSibling.innerText;
+            document.getElementById("item-description").setAttribute("placeholder", "Add description of task");
+            document.getElementById("item-description").value = '';
+
+            document.querySelector(".kanban__save-item").setAttribute("onclick", "saveNewItem(event)");
+
+        }
+
+        const saveNewItem = () => {
+
+            const title = document.getElementById("item-title").value;
+            const state = document.getElementById("item-status").value;
+            const description = document.getElementById("item-description").value;
+
+            const content = {
+                title: title,
+                description: description,
+                state: state
+            };
+
+            insertItem(currentColumn, content);
+            render();
+        }
+
+        const update = () => {
+
+            const title = document.getElementById("item-title").value;
+            const state = document.getElementById("item-status").value;
+            const description = document.getElementById("item-description").value;
+
+            const content = {
+                title: title,
+                description: description,
+                state: state
+            };
+
+            updateItem(targetItem, {
+                content
+            });
+            render();
+        }
+
+        document.addEventListener('dblclick', function (e) {
+            if (e.target.className == "kanban__item-input") {
+                const check = confirm("Are you sure you want to delete this item ? ");
+                if (check) {
+                    deleteItem(e.target.id);
+                }
+            }
+            render();
+        });
+
+
+        // Drag and drop 
+
+
+        const dragStart = (e) => {
+            e.dataTransfer.setData("text/plain", e.target.id);
+        }
+
+        const drop = (e) => {
+            e.preventDefault;
+            e.target.classList.remove("kanban__dropzone--active");
+
+
+            const columnElement = e.target.closest(".kanban__column");
+            const newTitle = columnElement.firstElementChild;
+            const columnId = parseInt(columnElement.id.slice(-1));
+            const dropZonesInColumn = Array.from(columnElement.getElementsByClassName("kanban__dropzone"));
+            const dropZoneIndex = dropZonesInColumn.indexOf(e.target);
+            const itemId = parseInt(e.dataTransfer.getData("text/plain"));
+
+            updateItem(itemId, {
+                columnId,
+                content: {
+                    state: newTitle.innerText
+                },
+                position: dropZoneIndex
+            }, true);
+            render();
+        }
+
+        const allowDrop = (e) => {
+            e.preventDefault();
+            e.target.classList.add("kanban__dropzone--active");
+        }
+
+        const dropLeave = (e) => {
+            e.target.classList.remove("kanban__dropzone--active");
+        }
+
+
+        render();
+    </script>
+</body>
+
+</html>
